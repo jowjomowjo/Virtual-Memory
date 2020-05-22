@@ -1,0 +1,61 @@
+The types are defined in types.h and help us keep track of which type of thing (a VPN, a PFN, a physical address, a virtual address, etc.) 
+each of our variables is.  You will be using the following types, all of which are implemented at 16-bit unsigned integers (although not all 
+16 bits are actually needed for all of them). 
+
+• vaddr_t – a virtual address 
+• paddr_t – a physical address 
+• vpn_t – a Virtual Page Number (VPN) 
+• pfn_t – a Physical Frame Number (PFN) 
+• offset_t – an offset into a page 
+ 
+The page table in the simulation is implemented as an array of page table entries.  
+The structure for a page table entry may be found in pagetable.h and is as follows: 
+
+typedef struct { 
+ pfn_t pfn; 
+ unsigned char valid; 
+ unsigned char dirty; 
+ unsigned char used; 
+} 
+ 
+pfn is the Physical Frame Number stored in an entry, and the three bit-flags are represented by unsigned chars that will be assigned 
+either 1 or 0 (other values will not be used). 
+ 
+The Page Table Base Register (PTBR) is represented by the global variable: 
+pte_t* ptbr; 
+and it stores page table (array of pte_t) for the currently running process (which is the one generating virtual addresses for translation).  
+The program simulates multiple processes and any time it performs a context switch and dispatches a new process, it will update the ptbr to 
+point to the new current process. 
+
+Each entry in the frame table represents one frame of physical memory and stores the process control block (PCB) of the process using that frame and VPN of that process’s virtual memory that is stored there.  The definitions for the frame table and PCB are found in process.h: 
+
+typedef struct { 
+ pcb_t* pcb; 
+ vpn_t  vpn; 
+} fte_t; 
+ 
+fte_t* frametable; /* array of frame table entries */ 
+
+The structure of the PCB is as follows.  So you can get the PCB from the frame table, and then get the page table for that process from its PCB. 
+ 
+typedef struct { 
+ unsigned int pid; 
+ char name[20]; 
+ pte_t* pagetable; 
+} pcb_t; 
+
+Finally, you will need to save page data to disk, and load page data from disk into memory frames.  The file on disk where pages are stored is referred to as the swap file.  The simulator provides a swap file module for you, with two functions that you can call to access the swap file; both are declared in swapfile.h: 
+ 
+void save_page_to_disk (pfn_t pfn, vpn_t vpn, int pid); 
+• pfn indicates the data to be saved by indicating the frame containing that data 
+• pid indicates the process that the page in that frame belongs to 
+• vpn indicates the page of that process’s memory that is in that frame 
+• (the pid & vpn identify the saved page so that we are able to specify which page we want to load from disk later) 
+ 
+void load_page_from_disk (pfn_t pfn, vpn_t vpn, int pid); 
+• pid indicates the process owning the page that we want to load 
+• vpn indicates which page belonging to that process that we want to load 
+• pfn indicates which frame in memory we want to load the page data into 
+ 
+ 
+ 
